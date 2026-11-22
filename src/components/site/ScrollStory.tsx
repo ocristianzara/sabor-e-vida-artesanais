@@ -35,49 +35,46 @@ export function ScrollStory() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<HTMLImageElement[]>([]);
+  const lastDrawnFrameRef = useRef<number>(-1);
+  const currentFrameIndexRef = useRef<number>(0);
   const [activeStep, setActiveStep] = useState(0);
   const [currentFrameNum, setCurrentFrameNum] = useState(1);
   const [progressPercent, setProgressPercent] = useState(0);
 
-  // Preload frames
-  useEffect(() => {
-    const loadedImages: HTMLImageElement[] = [];
-    for (let i = 1; i <= TOTAL_FRAMES; i++) {
-      const img = new Image();
-      const numStr = String(i).padStart(3, "0");
-      img.src = `/frames/frame_${numStr}.jpg`;
-      img.onload = () => {
-        if (i === 1 && canvasRef.current) {
-          drawFrame(0);
-        }
-      };
-      loadedImages.push(img);
-    }
-    framesRef.current = loadedImages;
-
-    const handleResize = () => {
-      if (canvasRef.current) {
-        const dpr = window.devicePixelRatio || 1;
-        canvasRef.current.width = window.innerWidth * dpr;
-        canvasRef.current.height = window.innerHeight * dpr;
-        drawFrame(currentFrameNum - 1);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    handleResize();
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const drawFrame = (index: number) => {
+  const drawFrame = (targetIndex: number, force = false) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const img = framesRef.current[index];
-    if (!img || !img.complete) return;
+    const frames = framesRef.current;
+    let img = frames[targetIndex];
+    let foundIdx = targetIndex;
+
+    // Fallback to nearest loaded frame if target is still loading
+    if (!img || !img.complete || !img.naturalWidth) {
+      for (let j = targetIndex - 1; j >= 0; j--) {
+        if (frames[j] && frames[j].complete && frames[j].naturalWidth) {
+          img = frames[j];
+          foundIdx = j;
+          break;
+        }
+      }
+    }
+    if (!img || !img.complete || !img.naturalWidth) {
+      for (let j = targetIndex + 1; j < TOTAL_FRAMES; j++) {
+        if (frames[j] && frames[j].complete && frames[j].naturalWidth) {
+          img = frames[j];
+          foundIdx = j;
+          break;
+        }
+      }
+    }
+
+    if (!img || !img.complete || !img.naturalWidth) return;
+    if (!force && foundIdx === lastDrawnFrameRef.current) return;
+
+    lastDrawnFrameRef.current = foundIdx;
 
     const cw = canvas.width;
     const ch = canvas.height;
@@ -94,6 +91,43 @@ export function ScrollStory() {
     ctx.drawImage(img, cx, cy, nw, nh);
   };
 
+  // Preload frames with fallback
+  useEffect(() => {
+    const loadedImages: HTMLImageElement[] = [];
+
+    for (let i = 1; i <= TOTAL_FRAMES; i++) {
+      const img = new Image();
+      const numStr = String(i).padStart(3, "0");
+      img.src = `/frames/frame_${numStr}.jpg`;
+
+      img.onerror = () => {
+        img.src = `frames/frame_${numStr}.jpg`;
+      };
+
+      img.onload = () => {
+        if (i - 1 === currentFrameIndexRef.current || lastDrawnFrameRef.current === -1) {
+          drawFrame(currentFrameIndexRef.current, true);
+        }
+      };
+      loadedImages.push(img);
+    }
+    framesRef.current = loadedImages;
+
+    const handleResize = () => {
+      if (canvasRef.current) {
+        const dpr = window.devicePixelRatio || 1;
+        canvasRef.current.width = window.innerWidth * dpr;
+        canvasRef.current.height = window.innerHeight * dpr;
+        drawFrame(currentFrameIndexRef.current, true);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   useEffect(() => {
     let ticking = false;
 
@@ -103,15 +137,19 @@ export function ScrollStory() {
       const totalScrollable = rect.height - window.innerHeight;
       const currentScrolled = -rect.top;
 
-      let progress = currentScrolled / totalScrollable;
+      let progress = 0;
+      if (totalScrollable > 0) {
+        progress = currentScrolled / totalScrollable;
+      }
       progress = Math.max(0, Math.min(1, progress));
 
       setProgressPercent(progress * 100);
 
       const frameIdx = Math.min(
         TOTAL_FRAMES - 1,
-        Math.floor(progress * TOTAL_FRAMES)
+        Math.max(0, Math.floor(progress * TOTAL_FRAMES))
       );
+      currentFrameIndexRef.current = frameIdx;
       setCurrentFrameNum(frameIdx + 1);
       drawFrame(frameIdx);
 
@@ -130,6 +168,8 @@ export function ScrollStory() {
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    onScroll();
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -142,22 +182,22 @@ export function ScrollStory() {
     >
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
         {/* Canvas de alta performance */}
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover z-0" />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block z-0" />
 
         {/* Efeito de vinheta para contraste */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#26160e]/85 via-transparent to-[#26160e]/60 pointer-events-none z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#26160e]/90 via-black/25 to-[#26160e]/70 pointer-events-none z-10" />
 
         {/* Top Overlay com contador e progresso */}
         <div className="absolute top-6 left-0 right-0 z-20 max-w-7xl mx-auto px-6 flex items-center justify-between pointer-events-none">
-          <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+          <div className="flex items-center gap-3 bg-black/50 backdrop-blur-md px-4 py-2 rounded-full border border-white/15">
             <span className="w-2 h-2 rounded-full bg-[#df9c5e] animate-pulse" />
             <span className="text-xs font-semibold tracking-widest uppercase text-[#df9c5e]">
               A Arte da Panificação Artesanal
             </span>
           </div>
 
-          <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-            <span className="text-xs tracking-wider text-white/70">
+          <div className="flex items-center gap-3 bg-black/50 backdrop-blur-md px-4 py-2 rounded-full border border-white/15">
+            <span className="text-xs tracking-wider text-white/90 font-mono">
               Frame {String(currentFrameNum).padStart(2, "0")} / {TOTAL_FRAMES}
             </span>
             <div className="w-24 h-1.5 bg-white/20 rounded-full overflow-hidden">
@@ -170,11 +210,11 @@ export function ScrollStory() {
         </div>
 
         {/* Narrativa Sincronizada com Scroll */}
-        <div className="relative z-20 max-w-4xl mx-auto px-6 text-center pointer-events-none w-full">
+        <div className="relative z-20 max-w-4xl mx-auto px-6 text-center pointer-events-none w-full min-h-[220px] flex items-center justify-center">
           {STORY_STEPS.map((step, idx) => (
             <div
               key={idx}
-              className={`transition-all duration-700 ${
+              className={`transition-all duration-500 ${
                 activeStep === idx
                   ? "opacity-100 transform translate-y-0 block"
                   : "opacity-0 transform translate-y-6 hidden"

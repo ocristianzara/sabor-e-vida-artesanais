@@ -57,11 +57,13 @@
   </script>
 
   <style>
+    html, body {
+      overflow-x: clip;
+    }
     body {
       background-color: #f5ede8;
       color: #26160e;
       font-family: 'Plus Jakarta Sans', sans-serif;
-      overflow-x: hidden;
     }
     
     .font-artisan {
@@ -98,23 +100,21 @@
 </head>
 <body class="relative selection:bg-brand-accent selection:text-white">
 
-  <!-- NAVBAR -->
-  <header class="fixed top-0 left-0 right-0 z-50 bg-[#1c0f09]/80 backdrop-blur-md border-b border-white/10 transition-all duration-300" id="main-nav">
+  <!-- NAVBAR (COM A COR PRIMÁRIA DA PÁGINA: #f5ede8) -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-[#f5ede8]/90 backdrop-blur-md border-b border-[#e4d3c7]/60 shadow-sm transition-all duration-300" id="main-nav">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       <!-- Logo -->
       <a href="#hero" class="flex items-center gap-3 group">
-        <div class="bg-white/90 hover:bg-white px-3 py-1 rounded-xl transition-all duration-300 shadow-md">
-          <img src="assets/logo.png" alt="Sabor e Vida Artesanais" class="h-10 w-auto object-contain transition-transform group-hover:scale-105 duration-300">
-        </div>
+        <img src="assets/logo.png" alt="Sabor e Vida Artesanais" class="h-12 w-auto object-contain transition-transform group-hover:scale-105 duration-300">
       </a>
 
       <!-- Desktop Nav Links -->
-      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-white/90 tracking-wide">
-        <a href="#hero" class="hover:text-brand-wheat transition-colors">Início</a>
-        <a href="#scroll-experience" class="hover:text-brand-wheat transition-colors">A Experiência</a>
-        <a href="#galeria" class="hover:text-brand-wheat transition-colors">Nossos Pães</a>
-        <a href="#fundador" class="hover:text-brand-wheat transition-colors">O Padeiro</a>
-        <a href="#localizacao" class="hover:text-brand-wheat transition-colors">Onde Estamos</a>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-[#432616] tracking-wide">
+        <a href="#hero" class="hover:text-brand-accent transition-colors">Início</a>
+        <a href="#scroll-experience" class="hover:text-brand-accent transition-colors">A Experiência</a>
+        <a href="#galeria" class="hover:text-brand-accent transition-colors">Nossos Pães</a>
+        <a href="#fundador" class="hover:text-brand-accent transition-colors">O Padeiro</a>
+        <a href="#localizacao" class="hover:text-brand-accent transition-colors">Onde Estamos</a>
       </nav>
 
       <!-- CTA Button -->
@@ -767,6 +767,7 @@
     (function() {
       const TOTAL_FRAMES = 55;
       const canvas = document.getElementById('bread-canvas');
+      if (!canvas) return;
       const ctx = canvas.getContext('2d');
       const container = document.getElementById('scroll-experience');
       const progressBar = document.getElementById('scroll-progress-bar');
@@ -782,20 +783,34 @@
 
       // Preload frames array
       const frames = [];
-      let loadedCount = 0;
       let currentFrameIndex = 0;
+      let lastDrawnFrame = -1;
 
-      // Generate paths: frames/frame_001.jpg ... frames/frame_055.jpg
+      // Base path detection: works on file://, http://localhost, and production subpaths
+      const isFile = window.location.protocol === 'file:';
+      const baseFramePath = isFile ? 'frames/' : '/frames/';
+
+      // Preload frames with fallback handling
       for (let i = 1; i <= TOTAL_FRAMES; i++) {
         const img = new Image();
         const num = String(i).padStart(3, '0');
-        img.src = `frames/frame_${num}.jpg`;
-        img.onload = () => {
-          loadedCount++;
-          if (loadedCount === 1) {
-            renderFrame(0);
+        img.src = `${baseFramePath}frame_${num}.jpg`;
+
+        // Secondary fallback if leading slash is not found
+        img.onerror = function() {
+          if (!this._retried) {
+            this._retried = true;
+            this.src = `frames/frame_${num}.jpg`;
           }
         };
+
+        img.onload = function() {
+          // If this is the current frame or nothing rendered yet, render now!
+          if (i - 1 === currentFrameIndex || lastDrawnFrame === -1) {
+            renderFrame(currentFrameIndex, true);
+          }
+        };
+
         frames.push(img);
       }
 
@@ -803,16 +818,44 @@
         const dpr = window.devicePixelRatio || 1;
         canvas.width = window.innerWidth * dpr;
         canvas.height = window.innerHeight * dpr;
-        renderFrame(currentFrameIndex);
+        renderFrame(currentFrameIndex, true);
       }
 
       window.addEventListener('resize', resizeCanvas);
-      resizeCanvas();
 
       // Draw image keeping cover aspect ratio
-      function renderFrame(index) {
-        if (!frames[index] || !frames[index].complete) return;
-        const img = frames[index];
+      function renderFrame(targetIndex, force) {
+        if (!ctx) return;
+
+        // Find exact target frame or nearest loaded frame
+        let img = frames[targetIndex];
+        let foundIdx = targetIndex;
+
+        if (!img || !img.complete || !img.naturalWidth) {
+          // Look backward
+          for (let j = targetIndex - 1; j >= 0; j--) {
+            if (frames[j] && frames[j].complete && frames[j].naturalWidth) {
+              img = frames[j];
+              foundIdx = j;
+              break;
+            }
+          }
+        }
+        if (!img || !img.complete || !img.naturalWidth) {
+          // Look forward
+          for (let j = targetIndex + 1; j < TOTAL_FRAMES; j++) {
+            if (frames[j] && frames[j].complete && frames[j].naturalWidth) {
+              img = frames[j];
+              foundIdx = j;
+              break;
+            }
+          }
+        }
+
+        if (!img || !img.complete || !img.naturalWidth) return;
+        if (!force && foundIdx === lastDrawnFrame) return;
+
+        lastDrawnFrame = foundIdx;
 
         const cw = canvas.width;
         const ch = canvas.height;
@@ -836,43 +879,46 @@
       let ticking = false;
 
       function updateStory() {
+        if (!container) return;
         const rect = container.getBoundingClientRect();
         const totalScrollable = rect.height - window.innerHeight;
         const currentScrolled = -rect.top;
 
-        let progress = currentScrolled / totalScrollable;
+        let progress = 0;
+        if (totalScrollable > 0) {
+          progress = currentScrolled / totalScrollable;
+        }
         progress = Math.max(0, Math.min(1, progress));
 
         // Update progress bar
-        progressBar.style.width = `${(progress * 100).toFixed(1)}%`;
-
-        // Calculate frame index (0 to 54)
-        const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.floor(progress * TOTAL_FRAMES));
-        if (frameIndex !== currentFrameIndex) {
-          currentFrameIndex = frameIndex;
-          renderFrame(currentFrameIndex);
-          frameCounter.textContent = `Frame ${String(currentFrameIndex + 1).padStart(2, '0')} / ${TOTAL_FRAMES}`;
+        if (progressBar) {
+          progressBar.style.width = (progress * 100).toFixed(1) + '%';
         }
 
-        // Determine active story moment
+        // Calculate frame index (0 to 54)
+        const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.max(0, Math.floor(progress * TOTAL_FRAMES)));
+        if (frameIndex !== currentFrameIndex || lastDrawnFrame === -1) {
+          currentFrameIndex = frameIndex;
+          renderFrame(currentFrameIndex, false);
+          if (frameCounter) {
+            frameCounter.textContent = 'Frame ' + String(currentFrameIndex + 1).padStart(2, '0') + ' / ' + TOTAL_FRAMES;
+          }
+        }
+
+        // Determine active story moment (5 steps)
         let activeStepIndex = Math.floor(progress * 5);
         if (activeStepIndex >= 5) activeStepIndex = 4;
 
         steps.forEach((step, idx) => {
+          if (!step) return;
           if (idx === activeStepIndex) {
             step.classList.remove('hidden');
-            setTimeout(() => {
-              step.classList.remove('opacity-0', 'translate-y-6');
-              step.classList.add('opacity-100', 'translate-y-0');
-            }, 20);
+            step.classList.remove('opacity-0', 'translate-y-6');
+            step.classList.add('opacity-100', 'translate-y-0');
           } else {
+            step.classList.add('hidden');
             step.classList.remove('opacity-100', 'translate-y-0');
             step.classList.add('opacity-0', 'translate-y-6');
-            setTimeout(() => {
-              if (idx !== activeStepIndex) {
-                step.classList.add('hidden');
-              }
-            }, 400);
           }
         });
 
@@ -886,8 +932,14 @@
         }
       }, { passive: true });
 
-      // Initial call
+      // Initial execution
+      resizeCanvas();
       updateStory();
+
+      window.addEventListener('load', () => {
+        resizeCanvas();
+        updateStory();
+      });
 
     })();
   </script>

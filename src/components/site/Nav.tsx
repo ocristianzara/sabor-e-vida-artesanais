@@ -15,37 +15,35 @@ export function Nav() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-[#1c0f09]/90 backdrop-blur-md shadow-md border-b border-white/10"
-          : "bg-[#1c0f09]/60 backdrop-blur-sm border-b border-white/10"
+          ? "bg-[#f5ede8]/95 backdrop-blur-md shadow-sm border-b border-[#e4d3c7]"
+          : "bg-[#f5ede8]/90 backdrop-blur-md border-b border-[#e4d3c7]/60"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Logo */}
         <a href="#hero" className="flex items-center gap-3 group">
-          <div className="bg-white/90 hover:bg-white px-3 py-1 rounded-xl transition-all duration-300 shadow-md">
-            <img
-              src="/assets/logo.png"
-              alt="Sabor e Vida Artesanais"
-              className="h-10 w-auto object-contain transition-transform group-hover:scale-105 duration-300"
-            />
-          </div>
+          <img
+            src="/assets/logo.png"
+            alt="Sabor e Vida Artesanais"
+            className="h-12 w-auto object-contain transition-transform group-hover:scale-105 duration-300"
+          />
         </a>
 
         {/* Links Desktop */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-white/90 tracking-wide">
-          <a href="#hero" className="hover:text-[#df9c5e] transition-colors">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[#432616] tracking-wide">
+          <a href="#hero" className="hover:text-[#bb7840] transition-colors">
             Início
           </a>
-          <a href="#scroll-experience" className="hover:text-[#df9c5e] transition-colors">
+          <a href="#scroll-experience" className="hover:text-[#bb7840] transition-colors">
             A Experiência
           </a>
-          <a href="#galeria" className="hover:text-[#df9c5e] transition-colors">
+          <a href="#galeria" className="hover:text-[#bb7840] transition-colors">
             Nossos Pães
           </a>
-          <a href="#fundador" className="hover:text-[#df9c5e] transition-colors">
+          <a href="#fundador" className="hover:text-[#bb7840] transition-colors">
             O Padeiro
           </a>
-          <a href="#localizacao" className="hover:text-[#df9c5e] transition-colors">
+          <a href="#localizacao" className="hover:text-[#bb7840] transition-colors">
             Onde Estamos
           </a>
         </nav>
