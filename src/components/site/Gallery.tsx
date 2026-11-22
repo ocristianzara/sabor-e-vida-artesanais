@@ -1,5 +1,3 @@
-import React from "react";
-
 const PRODUCTS = [
   {
     image: "/assets/paes/foto-01.png",

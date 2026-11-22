@@ -1,5 +1,3 @@
-import React from "react";
-
 export function FinalCta() {
   const mapsUrl = "https://www.google.com/maps/place/Mercado+Municipal+de+Campos+do+Jord%C3%A3o/@-22.7391792,-45.5929924,1598a,75y,316.15h,89.36t/data=!3m7!1e1!3m5!1sSksoNIjNiShnwJlccnzWcg!2e0!6shttps:%2F%2Fstreetviewpixels-pa.clients6.google.com%2Fv1%2Fthumbnail%3Fcb_client%3Dmaps_sv.tactile%26w%3D900%26h%3D600%26pitch%3D0.6376965383602311%26panoid%3DSksoNIjNiShnwJlccnzWcg%26yaw%3D316.15011662536364!7i16384!8i8192!4m14!1m7!3m6!1s0x94cc89d05bc2285b:0xc6cb80505686b755!2sMercado+Municipal+de+Campos+do+Jord%C3%A3o!8m2!3d-22.7391093!4d-45.5931953!16s%2Fg%2F11bwqfswmm!3m5!1s0x94cc89d05bc2285b:0xc6cb80505686b755!8m2!3d-22.7391093!4d-45.5931953!16s%2Fg%2F11bwqfswmm?entry=ttu";
 

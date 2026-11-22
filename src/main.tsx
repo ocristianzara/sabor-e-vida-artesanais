@@ -1,30 +1,19 @@
-import React from 'react'
+import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Nav } from '@/components/site/Nav'
-import { Hero } from '@/components/site/Hero'
-import { ScrollStory } from '@/components/site/ScrollStory'
-import { Gallery } from '@/components/site/Gallery'
-import { Founder } from '@/components/site/Founder'
-import { FinalCta } from '@/components/site/FinalCta'
-import { Footer } from '@/components/site/Footer'
+import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { routeTree } from './routeTree.gen'
 import './index.css'
 
-function App() {
-  return (
-    <main>
-      <Nav />
-      <Hero />
-      <ScrollStory />
-      <Gallery />
-      <Founder />
-      <FinalCta />
-      <Footer />
-    </main>
-  )
+const router = createRouter({ routeTree })
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router
+  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>,
 )

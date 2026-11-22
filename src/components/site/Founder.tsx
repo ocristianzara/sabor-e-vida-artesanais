@@ -1,5 +1,3 @@
-import React from "react";
-
 export function Founder() {
   return (
     <section id="fundador" className="py-24 relative bg-white border-y border-[#e4d3c7]/60 overflow-hidden">
