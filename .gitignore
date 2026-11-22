@@ -1,0 +1,14 @@
+# Logs & Temporary
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+
+# Build output
+dist/
+build/
+.cache/
+
+# Local env
+.env
+.env.local
